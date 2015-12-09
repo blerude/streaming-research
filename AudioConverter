@@ -1,0 +1,57 @@
+//  NOTE: This is not original code, rather borrowed from:
+//  http://www.developer.com/java/other/article.php/3071021/Java-Sound-Audio-File-Conversion.htm
+
+/*File AudioFileConvert02.java
+Copyright 2003, R.G.Baldwin
+
+package test;
+import java.io.*;
+import javax.sound.sampled.*;
+
+public class AudioConverter{
+
+    public static void main(String[] args)
+    {
+        if (args.length != 2)
+        {
+            System.out.println("Usage: java AudioFileConvert02 " + 
+                    "inputFile outputFile");
+            System.exit(0);
+        }
+
+        AudioFileFormat.Type outputType = getTargetType("wav");
+
+        if (outputType == null) 
+        {
+            System.out.println("Output type not supported.");
+            System.exit(0);
+        }
+
+        File inputFileObj = new File(args[0]);
+        AudioInputStream audioInputStream = null;
+        try
+        {
+            audioInputStream = AudioSystem.getAudioInputStream(inputFileObj);
+            AudioSystem.write(audioInputStream, outputType, new File(args[1]));
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(0);
+        }
+
+    }
+
+    private static AudioFileFormat.Type getTargetType(String extension)
+    {
+        AudioFileFormat.Type[] typesSupported = AudioSystem.getAudioFileTypes();
+        for (int i = 0; i < typesSupported.length; i++)
+        {
+            if (typesSupported[i].getExtension().equals(extension))
+            {
+                return typesSupported[i];
+            }
+        }
+        return null; //no match
+  }
+}
