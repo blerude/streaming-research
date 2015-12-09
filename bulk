@@ -1,0 +1,461 @@
+package test;
+import org.apache.commons.math3.transform.*;
+import java.io.*;
+import java.util.Arrays;
+import javax.sound.sampled.*;
+import java.lang.*;
+
+// @author benlerude
+         
+public class Test {
+    
+    static double[] freqs = {15.886099581993749, 16.830736220439015, 
+        17.831543876451384, 18.891862652548724, 20.015231264080082, 
+        21.205398849359185, 22.466337482065118, 23.80225542766894, 
+        25.21761118812846, 26.717128381724155, 28.305811507696028, 
+        29.988962648294585, 31.772199163987512, 33.661472440878015, 
+        35.66308775290277, 37.783725305097455, 40.03046252816015, 
+        42.41079769871837, 44.93267496413025, 47.604510855337864, 
+        50.43522237625692, 53.43425676344833, 56.611623015392055, 
+        59.97792529658917, 63.544398327975024, 67.32294488175603, 
+        71.32617550580554, 75.56745061019491, 80.0609250563203, 
+        84.82159539743674, 89.8653499282605, 95.20902171067573, 
+        100.87044475251383, 106.86851352689666, 113.22324603078413, 
+        119.95585059317834, 127.08879665595002, 134.6458897635121, 
+        142.65235101161107, 151.1349012203898, 160.12185011264063, 
+        169.64319079487348, 179.73069985652097, 190.41804342135148, 
+        201.74088950502767, 213.7370270537933, 226.44649206156825, 
+        239.91170118635668, 254.17759331190004, 269.2917795270241, 
+        285.30470202322215, 302.2698024407796, 320.24370022528126, 
+        339.28638158974695, 359.46139971304194, 380.83608684270297, 
+        403.48177901005533, 427.4740541075866, 452.8929841231365, 
+        479.82340237271336, 508.3551866238001, 538.5835590540484, 
+        570.6094040464443, 604.5396048815592, 640.4874004505624, 
+        678.5727631794939, 718.922799426084, 761.6721736854058, 
+        806.9635580201107, 854.9481082151732, 905.785968246273, 
+        959.6468047454267, 1016.7103732476002, 1077.1671181080967, 
+        1141.2188080928886, 1209.0792097631183, 1280.974800901125, 
+        1357.1455263589878, 1437.8455988521678, 1523.3443473708119, 
+        1613.9271160402213, 1709.8962164303464, 1811.5719364925458, 
+        1919.2936094908534, 2033.4207464952008, 2154.334236216193, 
+        2282.437616185777, 2418.158419526237, 2561.9496018022496, 
+        2714.2910527179756, 2875.691197704336, 3046.6886947416233, 
+        3227.8542320804427, 3419.792432860693, 3623.1438729850915, 
+        3838.587218981707, 4066.8414929904015, 4308.668472432386, 
+        4564.875232371554, 4836.316839052474, 5123.899203604499, 
+        5428.582105435951, 5751.382395408672, 6093.377389483247, 
+        6455.708464160885, 6839.584865721386, 7246.287745970186, 
+        7677.174437963414, 8133.6829859807995};
+    
+    
+    /*
+    This main method implements the procDir method; it is commented out
+        because it only needs to be called one time in order to process each
+        clip.
+    public static void main(String[] args) 
+    {   
+        /*try 
+        {
+            procDir("/Users/benlerude/NetBeansProjects/test/Audio/");
+            
+            //normalize(dSamples);
+            //transform(dSamples);
+            //System.out.println(Arrays.toString(dSamples));
+        }
+        catch (Exception e) 
+        {
+            e.printStackTrace();
+        }
+    }*/
+
+    public static void main(String[] args)
+    {
+        String dir = "/Users/benlerude/NetBeansProjects/test/Audio/";
+        writeCSV(dir);
+    }
+    
+    //  writes a CSV file that gives the magnitudes for each chroma for each 
+    //      clip of music. This is done by calling the analyze method, which 
+    //      fully examines the samples of each clip in order to isolate the
+    //      frequency of each chroma
+    public static void writeCSV(String dir)
+    { 
+        File folder = new File (dir);
+        
+        try
+        {
+            FileWriter getCSV = new FileWriter("/Users/benlerude/NetBeansProjects/test/Audio.csv/");
+            getCSV.append("Results: ");
+            getCSV.append('\n');
+            
+            for (File fileEntry : folder.listFiles())
+            {
+                String currName = fileEntry.getName();
+                if (currName.equals(".DS_Store"))
+                {
+
+                }
+                else
+                {
+                    String chroma = analyze(currName, dir);
+
+                    getCSV.append(chroma);
+                    getCSV.append('\n');
+                }
+            }
+            
+            getCSV.flush();
+            getCSV.close();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+   
+    //  digs into each clip in order to find the chroma data, which is 
+    //      accomplished by calling the normalize, transform, and findPitch
+    //      methods (see each individually for a description on its function)
+    public static String analyze(String currName, String dir)
+    {
+        try
+        {
+            FileInputStream f = new FileInputStream(dir + currName);
+            WavReader wr = new WavReader(f);
+            int[] samples = wr.getSamples();
+
+            double[] output = new double[samples.length];
+            for (int i = 0; i < output.length; i++)
+            {
+                output[i] = samples[i] / 32768.0;
+            }
+
+            normalize(output);
+            double[] realOutput = transform(output);
+            double[] mags = new double[freqs.length];
+            for (int i = 0; i < realOutput.length; i++)
+            {
+                int p = findPitch(22050, realOutput.length, i);
+                if (p >= 0)
+                {
+                    mags[p] = mags[p] + Math.abs(realOutput[i]);
+                }
+            }
+
+            double[] pcMags = new double[88];
+            for (int i = 0; i < mags.length; i++)
+            {
+                int pc = i % 88;
+                pcMags[pc] = pcMags[pc] + mags[i];
+            }
+            normalize(pcMags);
+                        
+            return getChroma(currName, pcMags);
+        }   
+        
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return "";
+        }           
+    }
+    
+    //  normalizes sample
+    public static void normalize(double[] d)
+    {
+        double max = 0;
+        for (int i = 0; i < d.length; i++)
+        {
+            if (Math.abs(d[i]) > max)
+            {
+                max = Math.abs(d[i]);
+            }
+        }
+        for (int i = 0; i < d.length; i++)
+        {
+            d[i] = d[i] / max;
+        }
+    }
+    
+    //  executes a fourier transform on the array of data samples from the clip,
+    //      and then takes the log of each member of the array and performs the 
+    //      inverse transform on that array by calling transformInv
+    public static double[] transform(double[] realDataRaw)
+    {
+        double[] realData;
+        if ((realDataRaw.length & (realDataRaw.length - 1)) != 0)
+        {
+            double newLen = Math.pow(2, Math.ceil(Math.log10((double)realDataRaw.length)/Math.log10(2)));
+            realData = new double[(int)newLen];
+            System.arraycopy(realDataRaw, 0, realData, 0, (realDataRaw.length - 1));
+        }
+        else
+        {
+            realData = realDataRaw;
+        }
+        
+        FastFourierTransformer fft = new FastFourierTransformer(DftNormalization.STANDARD);
+       
+        double[][] data = new double[2][realData.length];
+        for (int i = 0; i < realData.length; i++)
+        {
+            data[0][i] = realData[i];
+            data[1][i] = 0;
+        }
+        
+        fft.transformInPlace(data, DftNormalization.STANDARD, TransformType.FORWARD);
+        
+        double[] result = new double[realData.length];
+        for (int i = 0; i < result.length; i++)
+        {
+            result[i] = Math.sqrt(data[0][i] * data[0][i] + data[1][i] * data[1][i]);
+        }
+
+        double[] result2 = result;
+        for (int i = 0; i < result2.length; i++)
+        {
+            result2[i] = Math.log10(result2[i]);
+        }
+        
+        transformInv(result2, fft);
+        
+        return result2;
+    }
+    
+    //  performs the inverse FFT (cepstrum) on the given array of sampels, and
+    //      takes the magnitude of that result
+    public static void transformInv(double[] dataOrig, FastFourierTransformer fft) 
+    {
+        double[][] data = new double[2][dataOrig.length];
+        for (int i = 0; i < dataOrig.length; i++)
+        {
+            data[0][i] = dataOrig[i];
+            data[1][i] = 0;
+        }
+        
+        fft.transformInPlace(data, DftNormalization.STANDARD, TransformType.INVERSE);
+        
+        double[] invResult = new double[dataOrig.length];
+        for (int i = 0; i < dataOrig.length; i++)
+        {
+            invResult[i] = Math.sqrt(data[0][i] * data[0][i] + data[1][i] * data[1][i]);
+        }
+    }
+    
+    //  returns the proper key of the clip by looking at the bin frequency 
+    //      of the file's samples
+    public static int findPitch(int sampleRate, int numSamples, int binNum)
+    {
+        double f = binFreq(sampleRate, numSamples, binNum);
+        for (int i = 0; i < freqs.length - 1; i++)
+        {
+            if (f >= freqs[i] && f < freqs[i + 1])
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    //  gives frequency of the given bin
+    public static double binFreq(int sampleRate, int numSamples, int binNum)
+    {
+        double binFreq = ((double)binNum * ((double)sampleRate / 2)) / ((double)numSamples / 2);
+        return binFreq;
+    }
+    
+    //  concatenates a list of magnitudes for each chroma, and then identifies
+    //      the chroma with the highest magnitude, which is then translated
+    //      into the corresponding key and concatenated to the end of the string
+    public static String getChroma(String chroma, double[] pcMags)
+    {
+        String[] keys = {"C", "C#", "D", "D#", "E", "F", 
+                            "F#", "G", "G#", "A", "A#", "B"};
+        String key = "";
+        for (int i = 0; i < pcMags.length; i++)
+        {
+            chroma = chroma + ", " + pcMags[i];
+            
+            //The following if statement is only called during the single time
+            //   in which we are looking to find the pitch class of the sample,
+            //   which is done only one time and therefore can be commented out
+            //   after it has been done.
+            
+            //if (pcMags[i] == 1)
+            //{
+            //    key = keys[i];
+            //}
+        }
+        
+        /* The following line is also used only to return the pitch class, which 
+             we do when the number of bins is 12 and we only do one time to 
+             create the pitch class CSV file. 
+        */
+        //chroma = chroma + ", " + key;
+        return chroma;
+    }
+    
+   //FROM HERE, WE SEE THE CODE FROM THE MAIN THAT IS ONLY CALLED ONCE
+    
+   //  enters a directory of files, ensures that each file in the directory
+   //      is a .wav file by calling the converter method, and, for each .wav
+   //      file, processes the array of samples taken from that file by calling
+   //      procArray.
+    public static void procDir (String dir)
+    {
+        File folder = new File (dir);
+        
+        for (File fileEntry : folder.listFiles())
+        {
+            if (fileEntry.isDirectory())
+            {
+                procDir(fileEntry.getName());
+            }
+            else if (fileEntry.getName().endsWith(".au"))
+            {
+                File wavFile = new File("");
+                wavFile = converter(fileEntry);
+                System.out.println(wavFile.getName());
+                String currName = wavFile.getName();
+                try
+                {
+                    FileInputStream f = new FileInputStream(dir + currName);
+                    WavReader wr = new WavReader(f);
+                    int[] samples = wr.getSamples();
+                    
+                    procArray(samples, rename(currName, dir));
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }    
+    
+    //  implements the actual conversion to .wav format by checking the format
+    //      of the original file, and, if it is NOT a .wav file, writes a new
+    //      file of the intended format
+    public static File converter(File f)
+    {
+        AudioFileFormat.Type outputType = getTargetType("wav");
+
+        File inputFileObj = f;
+        File outputFile = new File("/Users/benlerude/NetBeansProjects/test/Audio/",
+                f.getName().substring(0, f.getName().lastIndexOf(".")) + ".wav");
+        AudioInputStream audioInputStream = null;
+        
+        try
+        {
+            audioInputStream = AudioSystem.getAudioInputStream(inputFileObj);
+            AudioSystem.write(audioInputStream, outputType, outputFile);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            System.exit(0);
+        }
+        return outputFile;
+    }
+
+    //  part of the converter method that checks to make sure .wav is a 
+    //      supported file type
+    private static AudioFileFormat.Type getTargetType(String extension)
+    {
+        AudioFileFormat.Type[] typesSupported = AudioSystem.getAudioFileTypes();
+        for (int i = 0; i < typesSupported.length; i++)
+        {
+            if (typesSupported[i].getExtension().equals(extension))
+            {
+                return typesSupported[i];
+            }
+        }
+        return null;
+    }
+    
+    //  ensures that the samples from each file are formatted into an array of
+    //      doubles, scales that array by calling the scale method, and then 
+    //      writes the new .wav file
+    public static void procArray (int[] raw, String fileName)
+    {
+        int rate = 22050;
+        int[] input = new int[rate * 10];
+        System.arraycopy(raw, 0, input, 0, input.length);
+        
+        double[] output = new double[input.length];
+        for (int i = 0; i < output.length; i++)
+        {
+            output[i] = input[i] / 32768.0;
+        }
+        
+        scale(output);
+        
+        WaveWriter.save(fileName, output);
+    }
+      
+    //  scales file so that beginning and ending 20 samples approach the 
+    //      respective peaks linearly from 0, creating a smooth playback 
+    public static void scale(double[] d)
+    {
+        double startPeak = d[20];
+        double endPeak = d[d.length - 21];
+        double rate1 = Math.abs(startPeak) / 20;
+        double rate2 = Math.abs(endPeak) / 20;
+        int count = 0;
+        
+        if (startPeak < 0)
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                d[i] = 0 - (i * rate1);
+            }
+        } 
+        else if (startPeak > 0)
+        {
+            for (int i = 0; i < 20; i++)
+            {
+                d[i] = 0 + (i * rate1);
+            }
+        }
+        
+        if (endPeak < 0)
+        {
+            for (int i = (d.length - 1); i > (d.length - 21); i--)
+            {
+                d[i] = 0 - (count * rate2);
+                count++;
+            }
+        } 
+        else if (endPeak > 0)
+        {
+            for (int i = (d.length - 1); i > (d.length - 21); i--)
+            {
+                d[i] = 0 + (count * rate2);
+                count++;
+            }
+        }
+        
+    }
+    
+    //  renames .wav files by inserting "_out" before the .wav part of the 
+    //      title, so that it is easy to distinguish which have been edited 
+    //      and which are the originals
+    public static String rename(String name, String dir)
+    {
+        String orig;
+        String ext;
+        String insert = new String ("_out");
+        String newName = "";
+        
+        for (int i = 0; i < name.length(); i++)
+        {
+            if (name.charAt(i) == '.')
+            {
+                ext = name.substring(i, name.length());
+                orig = name.substring(0, i);
+                newName = dir + orig + insert + ext;
+            }
+        } 
+        return newName;
+    } 
+}
