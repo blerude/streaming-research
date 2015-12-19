@@ -7,7 +7,7 @@ import java.lang.*;
 
 // @author benlerude
          
-public class Test {
+public class Analysis {
     
     static double[] freqs = {15.886099581993749, 16.830736220439015, 
         17.831543876451384, 18.891862652548724, 20.015231264080082, 
@@ -74,7 +74,7 @@ public class Test {
         writeCSV(dir);
     }
     
-    //  writes a CSV file that gives the magnitudes for each chroma for each 
+    //  writes a CSV file that gives the magnitudes for the chroma for each 
     //      clip of music. This is done by calling the analyze method, which 
     //      fully examines the samples of each clip in order to isolate the
     //      frequency of each chroma
